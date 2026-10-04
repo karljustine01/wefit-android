@@ -1,5 +1,6 @@
 package com.wefit.app.ui.navigation
 
+import androidx.compose.foundation.layout.padding
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
