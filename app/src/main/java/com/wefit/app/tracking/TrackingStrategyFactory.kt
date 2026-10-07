@@ -11,11 +11,11 @@ import android.content.Context
  * | running, 50m_dash, mile_walk       | GPS + Timer                             | GPS accuracy varies indoors |
  * | pushup                             | PushUpTrackingStrategy (dedicated)      | requires clear side-view framing |
  * | squats, situps, pushup_modified    | RepStateMachineTrackingStrategy         | requires clear framing of relevant joints |
+ * | lunges                             | RepStateMachineTrackingStrategy         | requires clear framing of lower body joints |
  * | jumping_jacks                      | PoseTrackingStrategy (generic)          | lighting/framing affects accuracy |
- * | curlup_modified, lunges,           | Accelerometer (peak detect)             | cannot verify form |
- * | jumping_rope                       |                                          | |
- * | plank                              | Timer only                              | none — duration is the metric |
- * | stork_balance                      | Gyroscope wobble detection              | proxy signal, not direct measurement |
+ * | plank                              | PoseHoldTrackingStrategy                | relies on stable pose estimation |
+ * | stork_balance                      | PoseHoldTrackingStrategy                | relies on leg balance detection |
+ * | curlup_modified, jumping_rope      | Accelerometer (peak detect)             | cannot verify form |
  * | quadrant_agility                   | Accelerometer + Timer                   | cannot verify movement pattern |
  * | sit_and_reach, vertical_jump       | Manual Entry                            | requires physical ruler/apparatus reading |
  * | project (Eating Healthy)           | No tracking — not physical               | by design, per spec |
@@ -36,9 +36,13 @@ object TrackingStrategyFactory {
                 ?: AccelerometerRepTrackingStrategy(context)
             "jumping_jacks" -> lifecycleOwner?.let { PoseTrackingStrategy(context, it, PoseExerciseConfigs.JUMPING_JACK) }
                 ?: AccelerometerRepTrackingStrategy(context)
-            "curlup_modified", "lunges", "jumping_rope" -> AccelerometerRepTrackingStrategy(context)
-            "plank" -> TimerTrackingStrategy()
-            "stork_balance" -> BalanceTrackingStrategy(context)
+            "lunges" -> lifecycleOwner?.let { RepStateMachineTrackingStrategy(context, it, RepExerciseConfigs.LUNGE) }
+                ?: AccelerometerRepTrackingStrategy(context)
+            "plank" -> lifecycleOwner?.let { PoseHoldTrackingStrategy(context, it, PoseHoldConfigs.PLANK) }
+                ?: TimerTrackingStrategy()
+            "stork_balance" -> lifecycleOwner?.let { PoseHoldTrackingStrategy(context, it, PoseHoldConfigs.STORK_BALANCE) }
+                ?: BalanceTrackingStrategy(context)
+            "curlup_modified", "jumping_rope" -> AccelerometerRepTrackingStrategy(context)
             "quadrant_agility" -> AgilityTrackingStrategy(context)
             "sit_and_reach", "vertical_jump" -> ManualEntryStrategy()
             "project" -> ManualEntryStrategy()
@@ -51,10 +55,8 @@ object TrackingStrategyFactory {
         return when (exerciseType) {
             "walking" -> "step_counter"
             "running", "50m_dash", "mile_walk" -> "gps"
-            "pushup", "squats", "situps", "pushup_modified", "jumping_jacks" -> "pose_estimation"
-            "curlup_modified", "lunges", "jumping_rope" -> "accelerometer"
-            "plank" -> "timer"
-            "stork_balance" -> "gyroscope"
+            "pushup", "squats", "situps", "pushup_modified", "jumping_jacks", "plank", "stork_balance", "lunges" -> "pose_estimation"
+            "curlup_modified", "jumping_rope" -> "accelerometer"
             "quadrant_agility" -> "accelerometer"
             "sit_and_reach", "vertical_jump", "project" -> "manual"
             else -> "timer"
@@ -65,9 +67,9 @@ object TrackingStrategyFactory {
         exerciseType in listOf("sit_and_reach", "vertical_jump", "project")
 
     fun isPoseBased(exerciseType: String): Boolean =
-        exerciseType in listOf("pushup", "squats", "situps", "pushup_modified", "jumping_jacks")
+        exerciseType in listOf("pushup", "squats", "situps", "pushup_modified", "jumping_jacks", "plank", "stork_balance", "lunges")
 
     /** Exercises using the rigorous state-machine strategy (top->bottom->top rep validation). */
     fun hasStateMachineFeedback(exerciseType: String): Boolean =
-        exerciseType in listOf("pushup", "squats", "situps", "pushup_modified")
+        exerciseType in listOf("pushup", "squats", "situps", "pushup_modified", "lunges")
 }

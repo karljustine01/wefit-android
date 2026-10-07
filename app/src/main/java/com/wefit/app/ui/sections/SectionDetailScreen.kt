@@ -20,6 +20,7 @@ fun SectionDetailScreen(
     isOwner: Boolean,
     onCreateAssignment: (sectionId: Int) -> Unit,
     onAssignmentSelected: (assignmentId: Int) -> Unit,
+    onAssignmentSelectedForTracking: (assignmentId: Int, exerciseType: String, exerciseName: String) -> Unit,
     onViewMembers: (sectionId: Int, isOwner: Boolean) -> Unit,
     viewModel: SectionDetailViewModel = viewModel()
 ) {
@@ -78,7 +79,16 @@ fun SectionDetailScreen(
                             items(state.assignments) { assignment ->
                                 WeFitCard(
                                     modifier = Modifier.fillMaxWidth(),
-                                    onClick = { onAssignmentSelected(assignment.id) }
+                                    onClick = {
+                                        if (isOwner) {
+                                            onAssignmentSelected(assignment.id)
+                                        } else {
+                                            val exercise = assignment.exercise
+                                            if (exercise != null) {
+                                                onAssignmentSelectedForTracking(assignment.id, exercise.exercise_type, exercise.name)
+                                            }
+                                        }
+                                    }
                                 ) {
                                     Text(assignment.exercise?.name ?: "Unknown Exercise", style = MaterialTheme.typography.titleMedium)
                                     Spacer(Modifier.height(6.dp))

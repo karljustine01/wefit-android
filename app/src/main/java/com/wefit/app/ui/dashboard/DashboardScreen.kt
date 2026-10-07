@@ -28,6 +28,7 @@ fun DashboardScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToAdminUsers: () -> Unit = {},
+    onNavigateToActivityLog: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
@@ -137,6 +138,17 @@ fun DashboardScreen(
                         Icon(Icons.Default.ManageAccounts, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(12.dp))
                         Text("Manage Users", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                WeFitCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onNavigateToActivityLog
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Activity Log", style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }

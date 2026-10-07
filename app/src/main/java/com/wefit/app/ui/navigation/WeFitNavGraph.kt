@@ -1,5 +1,6 @@
 package com.wefit.app.ui.navigation
 
+import com.wefit.app.ui.admin.ActivityLogScreen
 import androidx.compose.foundation.layout.padding
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.compose.material3.Scaffold
@@ -43,6 +44,7 @@ sealed class Screen(val route: String) {
     object Analytics : Screen("analytics")
     object AdminUsers : Screen("admin_users")
     object Settings : Screen("settings")
+    object ActivityLog : Screen("activity_log")
 
     object CreateAssignment : Screen("create_assignment/{sectionId}") {
         fun route(sectionId: Int = -1) = "create_assignment/$sectionId"
@@ -154,6 +156,9 @@ fun WeFitNavGraph() {
                     isOwner = isOwner,
                     onCreateAssignment = { sId -> navController.navigate(Screen.CreateAssignment.route(sId)) },
                     onAssignmentSelected = { assignmentId -> navController.navigate(Screen.AssignmentProgress.route(assignmentId)) },
+                    onAssignmentSelectedForTracking = { assignmentId, exerciseType, exerciseName ->
+                        navController.navigate(Screen.Tracking.trackingRoute(assignmentId, exerciseType, exerciseName))
+                    },
                     onViewMembers = { sId, owner -> navController.navigate(Screen.SectionMembers.route(sId, owner)) }
                 )
             }
@@ -194,6 +199,9 @@ fun WeFitNavGraph() {
             }
             composable(Screen.Notifications.route) {
                 NotificationsScreen()
+            }
+            composable(Screen.ActivityLog.route) {
+                ActivityLogScreen()
             }
             composable(Screen.Profile.route) {
                 ProfileScreen()

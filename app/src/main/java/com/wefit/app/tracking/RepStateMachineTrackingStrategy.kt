@@ -59,6 +59,15 @@ object RepExerciseConfigs {
         bottomAngle = 100.0 // squatted down
     )
 
+    val LUNGE = RepExerciseConfig(
+        primary = AngleTriple(
+            PoseLandmark.LEFT_HIP, PoseLandmark.LEFT_KNEE, PoseLandmark.LEFT_ANKLE,
+            PoseLandmark.RIGHT_HIP, PoseLandmark.RIGHT_KNEE, PoseLandmark.RIGHT_ANKLE
+        ),
+        topAngle = 160.0,
+        bottomAngle = 110.0
+    )
+
     val SIT_UP = RepExerciseConfig(
         primary = AngleTriple(
             PoseLandmark.LEFT_SHOULDER, PoseLandmark.LEFT_HIP, PoseLandmark.LEFT_KNEE,

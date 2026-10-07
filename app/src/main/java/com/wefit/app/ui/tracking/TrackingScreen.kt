@@ -19,7 +19,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class, androidx.camera.core.ExperimentalGetImage::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun TrackingScreen(
     assignmentId: Int,
@@ -42,7 +42,7 @@ fun TrackingScreen(
     val isPoseExercise = TrackingStrategyFactory.isPoseBased(exerciseType)
     val isPushUp = exerciseType == "pushup"
     val hasStateMachineFeedback = TrackingStrategyFactory.hasStateMachineFeedback(exerciseType)
-    val isGpsExercise = exerciseType in listOf("running", "50m_dash", "mile_walk", "walking")
+    val isGpsExercise = exerciseType in listOf("running", "50m_dash", "mile_walk")
 
     val permissionsState = rememberMultiplePermissionsState(
         permissions = if (isPoseExercise) {
@@ -110,24 +110,25 @@ fun TrackingScreen(
                         Spacer(Modifier.height(8.dp))
                         SetupTipsCard(exerciseType)
                         Spacer(Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = distanceInput,
-                            onValueChange = { distanceInput = it },
-                            label = { Text("Distance (cm), if applicable") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = repsInput,
-                            onValueChange = { repsInput = it },
-                            label = { Text("Reps / Completed (1 = yes), if applicable") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+
+                        if (exerciseType != "project") {
+                            OutlinedTextField(
+                                value = distanceInput,
+                                onValueChange = { distanceInput = it },
+                                label = { Text("Distance (cm)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                        } else {
+                            Text("No measurement needed — just submit to mark this complete.", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.height(8.dp))
+                        }
+
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = {
                             viewModel.start(assignmentId, exerciseType)
                             viewModel.submitManualEntry(
-                                repetitions = repsInput.toIntOrNull(),
+                                repetitions = if (exerciseType == "project") 1 else repsInput.toIntOrNull(),
                                 distanceMeters = (distanceInput.toDoubleOrNull() ?: 0.0) / 100.0
                             )
                         }) {
@@ -142,7 +143,8 @@ fun TrackingScreen(
                             viewModel = viewModel,
                             skeletonPoints = skeletonPoints,
                             currentAngle = currentAngle,
-                            repState = null
+                            repState = null,
+                            durationSeconds = state.data.durationSeconds
                         )
                         Spacer(Modifier.height(12.dp))
                         if (poseDetected) {
@@ -165,14 +167,17 @@ fun TrackingScreen(
                     }
                 }
                 TrackingPhase.TRACKING, TrackingPhase.PAUSED -> {
-                    Text("${state.data.durationSeconds}s", style = MaterialTheme.typography.titleLarge)
+                    if (!isPoseExercise && !isGpsExercise) {
+                        Text("${state.data.durationSeconds}s", style = MaterialTheme.typography.titleLarge)
+                    }
                     if (isPoseExercise) {
                         Spacer(Modifier.height(12.dp))
                         PoseCameraBox(
                             viewModel = viewModel,
                             skeletonPoints = skeletonPoints,
                             currentAngle = currentAngle,
-                            repState = repState
+                            repState = repState,
+                            durationSeconds = state.data.durationSeconds
                         )
                         Spacer(Modifier.height(12.dp))
                         if (hasStateMachineFeedback) {
@@ -197,15 +202,26 @@ fun TrackingScreen(
                     }
                     if (isGpsExercise) {
                         Spacer(Modifier.height(12.dp))
-                        RouteMapView(
-                            points = routePoints,
-                            modifier = Modifier.fillMaxWidth().height(300.dp)
-                        )
+                        Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+                            RouteMapView(points = routePoints, modifier = Modifier.fillMaxSize())
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(8.dp)
+                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .padding(10.dp)
+                            ) {
+                                Text("${state.data.durationSeconds}s", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                                if (state.data.distanceMeters > 0) {
+                                    Text("${"%.0f".format(state.data.distanceMeters)}m", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                        }
                         Spacer(Modifier.height(8.dp))
                     }
                     if (state.data.steps > 0) Text("Steps: ${state.data.steps}")
                     if (!hasStateMachineFeedback && state.data.repetitions > 0) Text("Reps: ${state.data.repetitions}")
-                    if (state.data.distanceMeters > 0) Text("Distance: ${"%.1f".format(state.data.distanceMeters)}m")
+                    if (state.data.distanceMeters > 0 && !isGpsExercise) Text("Distance: ${"%.1f".format(state.data.distanceMeters)}m")
                     Spacer(Modifier.height(24.dp))
                     Row {
                         if (state.phase == TrackingPhase.TRACKING) {
@@ -235,7 +251,8 @@ private fun PoseCameraBox(
     viewModel: TrackingViewModel,
     skeletonPoints: Map<Int, com.wefit.app.tracking.PosePoint>,
     currentAngle: Double?,
-    repState: String?
+    repState: String?,
+    durationSeconds: Int
 ) {
     Box(modifier = Modifier.fillMaxWidth().height(360.dp)) {
         CameraPreview(
@@ -245,29 +262,22 @@ private fun PoseCameraBox(
             }
         )
         val isFront = viewModel.getPoseStrategy()?.isFrontCamera ?: true
-        SkeletonOverlay(
-            points = skeletonPoints,
-            mirror = isFront,
-            modifier = Modifier.fillMaxSize()
-        )
+        SkeletonOverlay(points = skeletonPoints, mirror = isFront, modifier = Modifier.fillMaxSize())
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(8.dp)
-                .background(Color.Black.copy(alpha = 0.55f))
-                .padding(8.dp)
+                .background(Color.Black.copy(alpha = 0.6f))
+                .padding(10.dp)
         ) {
+            Text("${durationSeconds}s", color = Color.White, style = MaterialTheme.typography.titleLarge)
             Text(
                 text = currentAngle?.let { "%.1f°".format(it) } ?: "—",
                 color = Color.White,
                 style = MaterialTheme.typography.titleMedium
             )
             if (repState != null) {
-                Text(
-                    text = "State: $repState",
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelLarge
-                )
+                Text("State: $repState", color = Color.White, style = MaterialTheme.typography.labelLarge)
             }
         }
     }

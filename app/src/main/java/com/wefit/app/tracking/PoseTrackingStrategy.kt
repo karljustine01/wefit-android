@@ -63,8 +63,10 @@ object PoseExerciseConfigs {
     )
     val JUMPING_JACK = PoseExerciseConfig(
         metricType = PoseMetricType.SPREAD,
-        upThreshold = 1.3,
-        downThreshold = 0.9
+        upThreshold = 1.25,
+        downThreshold = 0.85,
+        minLikelihood = 0.35f,
+        requiredConsecutiveFrames = 2
     )
 }
 
@@ -377,11 +379,10 @@ class PoseTrackingStrategy(
         val leftHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)
         val rightHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP)
 
-        if (!landmarkReliable(leftShoulder) || !landmarkReliable(rightShoulder) ||
-            !landmarkReliable(leftWrist) || !landmarkReliable(rightWrist) ||
-            !landmarkReliable(leftAnkle) || !landmarkReliable(rightAnkle) ||
-            !landmarkReliable(leftHip) || !landmarkReliable(rightHip)
-        ) return null
+        val shouldersOk = landmarkReliable(leftShoulder) && landmarkReliable(rightShoulder)
+        val hipsOk = landmarkReliable(leftHip) && landmarkReliable(rightHip)
+
+        if (!shouldersOk || !hipsOk) return null // need a baseline reference either way
 
         val shoulderWidth = hypot(
             (leftShoulder!!.position.x - rightShoulder!!.position.x).toDouble(),
@@ -391,18 +392,37 @@ class PoseTrackingStrategy(
             (leftHip!!.position.x - rightHip!!.position.x).toDouble(),
             (leftHip.position.y - rightHip.position.y).toDouble()
         )
-        val wristSpread = hypot(
-            (leftWrist!!.position.x - rightWrist!!.position.x).toDouble(),
-            (leftWrist.position.y - rightWrist.position.y).toDouble()
-        )
-        val ankleSpread = hypot(
-            (leftAnkle!!.position.x - rightAnkle!!.position.x).toDouble(),
-            (leftAnkle.position.y - rightAnkle.position.y).toDouble()
-        )
 
         if (shoulderWidth == 0.0 || hipWidth == 0.0) return null
 
-        return (wristSpread / shoulderWidth) + (ankleSpread / hipWidth)
+        // Use whichever of wrists/ankles are actually visible this frame — don't
+        // require both pairs simultaneously, since arms/legs are frequently
+        // partially out of frame at the extremes of a jumping jack.
+        var ratio = 0.0
+        var contributors = 0
+
+        if (landmarkReliable(leftWrist) && landmarkReliable(rightWrist)) {
+            val wristSpread = hypot(
+                (leftWrist!!.position.x - rightWrist!!.position.x).toDouble(),
+                (leftWrist.position.y - rightWrist.position.y).toDouble()
+            )
+            ratio += wristSpread / shoulderWidth
+            contributors++
+        }
+
+        if (landmarkReliable(leftAnkle) && landmarkReliable(rightAnkle)) {
+            val ankleSpread = hypot(
+                (leftAnkle!!.position.x - rightAnkle!!.position.x).toDouble(),
+                (leftAnkle.position.y - rightAnkle.position.y).toDouble()
+            )
+            ratio += ankleSpread / hipWidth
+            contributors++
+        }
+
+        if (contributors == 0) return null
+
+        // Normalize so the scale roughly matches the old two-pair sum (~0.9-1.3 range)
+        return ratio * (2.0 / contributors)
     }
 
     private fun calculateAngle(ax: Float, ay: Float, bx: Float, by: Float, cx: Float, cy: Float): Double {

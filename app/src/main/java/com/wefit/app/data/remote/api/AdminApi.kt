@@ -1,5 +1,6 @@
 package com.wefit.app.data.remote.api
 
+import com.wefit.app.data.remote.dto.ActivityLogDto
 import com.wefit.app.data.remote.dto.ApiResponse
 import com.wefit.app.data.remote.dto.UserDto
 import retrofit2.http.GET
@@ -17,6 +18,12 @@ interface AdminApi {
 
     @PUT("admin/users/{id}/status")
     suspend fun updateStatus(@Path("id") id: Int, @Body request: UpdateStatusRequest): ApiResponse<UserDto>
+
+    @GET("admin/activity-logs")
+    suspend fun activityLogs(
+        @Query("user_id") userId: Int? = null,
+        @Query("action") action: String? = null
+    ): ApiResponse<List<ActivityLogDto>>
 }
 
 data class UpdateRoleRequest(val role: String)

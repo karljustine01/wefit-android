@@ -1,6 +1,7 @@
 package com.wefit.app.ui.tracking
 
 import android.app.Application
+import androidx.camera.core.ExperimentalGetImage
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wefit.app.data.repository.SessionHandle
@@ -70,7 +71,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     private val _routePoints = MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
     val routePoints: StateFlow<List<Pair<Double, Double>>> = _routePoints.asStateFlow()
 
-    @androidx.camera.core.ExperimentalGetImage
+    @androidx.annotation.OptIn(ExperimentalGetImage::class)
     fun prepare(exerciseType: String, lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
         if (preparedExerciseType == exerciseType && strategy != null) {
             return
@@ -161,7 +162,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    @androidx.camera.core.ExperimentalGetImage
+    @androidx.annotation.OptIn(ExperimentalGetImage::class)
     fun forceReprepare(exerciseType: String, lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
         preparedExerciseType = null
         strategy?.stop()
