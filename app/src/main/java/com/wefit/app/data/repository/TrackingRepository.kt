@@ -7,6 +7,7 @@ import com.wefit.app.data.remote.api.ExerciseSessionApi
 import com.wefit.app.data.remote.api.RetrofitClient
 import com.wefit.app.data.remote.dto.CompleteSessionRequest
 import com.wefit.app.data.remote.dto.StartSessionRequest
+import com.wefit.app.data.remote.dto.UpdateProgressRequest
 import com.wefit.app.tracking.TrackingData
 
 class TrackingRepository(context: Context) {
@@ -14,11 +15,6 @@ class TrackingRepository(context: Context) {
     private val api = RetrofitClient.getInstance(context).create(ExerciseSessionApi::class.java)
     private val dao = WeFitDatabase.getInstance(context).exerciseSessionDao()
 
-    /**
-     * Attempts to start the session on the server. If that fails (offline),
-     * saves it locally with a pending sync flag instead. Returns the ID to use
-     * for subsequent progress calls — a server ID if online, a local Room ID if offline.
-     */
     suspend fun startSession(assignmentId: Int, trackingMethod: String): SessionHandle {
         return try {
             val response = api.start(StartSessionRequest(assignmentId, trackingMethod))
@@ -42,6 +38,26 @@ class TrackingRepository(context: Context) {
         )
         val localId = dao.insert(entity)
         return SessionHandle(serverId = null, localId = localId, isOnline = false)
+    }
+
+    suspend fun uploadProgress(handle: SessionHandle, data: TrackingData, percent: Double) {
+        val id = handle.serverId ?: return
+        if (!handle.isOnline) return
+        try {
+            api.progress(
+                id,
+                UpdateProgressRequest(
+                    progress_percentage = percent,
+                    repetitions = data.repetitions,
+                    distance = data.distanceMeters,
+                    duration = data.durationSeconds,
+                    latitude = data.latitude,
+                    longitude = data.longitude
+                )
+            )
+        } catch (_: Exception) {
+            // A missed snapshot is acceptable; never interrupt tracking for it.
+        }
     }
 
     suspend fun completeSession(handle: SessionHandle, finalData: TrackingData): Result<Unit> {

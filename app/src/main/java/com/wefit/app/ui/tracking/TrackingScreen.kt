@@ -25,6 +25,7 @@ fun TrackingScreen(
     assignmentId: Int,
     exerciseName: String,
     exerciseType: String,
+    targetValue: Double? = null,
     onDone: () -> Unit,
     viewModel: TrackingViewModel = viewModel()
 ) {
@@ -59,6 +60,9 @@ fun TrackingScreen(
     LaunchedEffect(Unit) {
         viewModel.prepare(exerciseType, lifecycleOwner)
     }
+    LaunchedEffect(targetValue) {
+        viewModel.setTarget(targetValue)
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(exerciseName) }) }
@@ -72,6 +76,11 @@ fun TrackingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            if (targetValue != null && state.phase != TrackingPhase.COMPLETED) {
+                Text("Target: ${targetValue.let { if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString() }}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(8.dp))
+            }
+
             when (state.phase) {
                 TrackingPhase.PERMISSION_NEEDED -> {
                     Text(
@@ -97,9 +106,27 @@ fun TrackingScreen(
                     }
                 }
                 TrackingPhase.UNAVAILABLE -> {
-                    Text("This device doesn't have the sensor needed for automatic tracking of this exercise.")
+                    var fbReps by remember { mutableStateOf("") }
+                    var fbDistance by remember { mutableStateOf("") }
+                    var fbDuration by remember { mutableStateOf("") }
+                    Text("Automatic tracking isn't available on this device.", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
-                    Text("NOT YET VERIFIED: manual entry fallback is not yet built.", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "Enter the result you measured yourself. It is recorded as a manual entry so your teacher can see how it was measured.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(value = fbReps, onValueChange = { fbReps = it }, label = { Text("Repetitions") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(value = fbDuration, onValueChange = { fbDuration = it }, label = { Text("Duration (seconds)") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(value = fbDistance, onValueChange = { fbDistance = it }, label = { Text("Distance (meters)") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = {
+                        viewModel.submitManualFallback(
+                            assignmentId, fbReps.toIntOrNull(), fbDistance.toDoubleOrNull(), fbDuration.toIntOrNull()
+                        )
+                    }) { Text("Submit Result") }
                 }
                 TrackingPhase.IDLE -> {
                     if (TrackingStrategyFactory.isManualEntry(exerciseType)) {
@@ -197,6 +224,8 @@ fun TrackingScreen(
                                 Spacer(Modifier.height(4.dp))
                                 Text(it, color = if (it == "Good form") Color(0xFF00C853) else MaterialTheme.colorScheme.error)
                             }
+                        } else if (repState != "waiting") {
+                            Text("State: $repState", style = MaterialTheme.typography.bodyMedium)
                         }
                         Spacer(Modifier.height(8.dp))
                     }
@@ -220,7 +249,7 @@ fun TrackingScreen(
                         Spacer(Modifier.height(8.dp))
                     }
                     if (state.data.steps > 0) Text("Steps: ${state.data.steps}")
-                    if (!hasStateMachineFeedback && state.data.repetitions > 0) Text("Reps: ${state.data.repetitions}")
+                    if (!hasStateMachineFeedback && !isPoseExercise && state.data.repetitions > 0) Text("Reps: ${state.data.repetitions}")
                     if (state.data.distanceMeters > 0 && !isGpsExercise) Text("Distance: ${"%.1f".format(state.data.distanceMeters)}m")
                     Spacer(Modifier.height(24.dp))
                     Row {
@@ -239,7 +268,13 @@ fun TrackingScreen(
                     if (state.data.repetitions > 0) Text("Reps: ${state.data.repetitions}")
                     if (state.data.distanceMeters > 0) Text("Distance: ${"%.1f".format(state.data.distanceMeters)}m")
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = onDone) { Text("Done") }
+                    Row {
+                        Button(onClick = onDone) { Text("Done") }
+                        Spacer(Modifier.width(16.dp))
+                        OutlinedButton(onClick = {
+                            viewModel.forceReprepare(exerciseType, lifecycleOwner)
+                        }) { Text("Retake") }
+                    }
                 }
             }
         }

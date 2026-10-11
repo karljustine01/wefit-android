@@ -57,7 +57,8 @@ fun SectionMembersScreen(
                                         }
                                         if (isOwner) {
                                             TextButton(onClick = {
-                                                viewModel.removeMember(sectionId, member.user_id)
+                                                val targetUserId = member.user_id ?: return@TextButton
+                                                viewModel.removeMember(sectionId, userId = targetUserId)
                                             }) {
                                                 Text("Remove")
                                             }

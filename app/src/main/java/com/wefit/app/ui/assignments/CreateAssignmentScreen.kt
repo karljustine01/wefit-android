@@ -1,13 +1,20 @@
 package com.wefit.app.ui.assignments
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import com.wefit.app.ui.components.WeFitButton
 import com.wefit.app.ui.components.WeFitCard
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,8 +34,12 @@ fun CreateAssignmentScreen(
     var selectedSectionName by remember { mutableStateOf("") }
     var sectionExpanded by remember { mutableStateOf(false) }
 
+    var hasTarget by remember { mutableStateOf(false) }
     var targetValue by remember { mutableStateOf("") }
+
+    var hasDeadline by remember { mutableStateOf(false) }
     var deadline by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.success) {
         if (state.success) onCreated()
@@ -121,20 +132,43 @@ fun CreateAssignmentScreen(
                         }
                     }
 
+                    Spacer(Modifier.height(20.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Checkbox(checked = hasTarget, onCheckedChange = { hasTarget = it; if (!it) targetValue = "" })
+                        Text("Set a target value (auto-completes when reached)")
+                    }
+                    if (hasTarget) {
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = targetValue,
+                            onValueChange = { targetValue = it },
+                            label = { Text("Target (reps, meters, or seconds depending on exercise)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = targetValue,
-                        onValueChange = { targetValue = it },
-                        label = { Text("Target Value (optional)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = deadline,
-                        onValueChange = { deadline = it },
-                        label = { Text("Deadline (YYYY-MM-DD, optional)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Checkbox(checked = hasDeadline, onCheckedChange = { hasDeadline = it; if (!it) deadline = "" })
+                        Text("Set a deadline")
+                    }
+                    if (hasDeadline) {
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = deadline,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Deadline") },
+                            trailingIcon = {
+                                IconButton(onClick = { showDatePicker = true }) {
+                                    Icon(Icons.Default.CalendarToday, contentDescription = "Pick date")
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }
+                        )
+                    }
                 }
 
                 if (state.error != null) {
@@ -150,8 +184,8 @@ fun CreateAssignmentScreen(
                             viewModel.createAssignment(
                                 exerciseId = exId,
                                 sectionId = selectedSectionId,
-                                targetValue = targetValue.toDoubleOrNull(),
-                                deadline = deadline.ifBlank { null }
+                                targetValue = if (hasTarget) targetValue.toDoubleOrNull() else null,
+                                deadline = if (hasDeadline) deadline.ifBlank { null } else null
                             )
                         }
                     },
@@ -159,6 +193,27 @@ fun CreateAssignmentScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                        deadline = sdf.format(Date(millis))
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

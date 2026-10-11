@@ -1,11 +1,5 @@
 package com.wefit.app.ui.assignments
 
-import com.wefit.app.ui.components.WeFitCard
-import com.wefit.app.ui.components.WeFitButton
-import com.wefit.app.ui.components.WeFitEmpty
-import com.wefit.app.ui.components.WeFitError
-import com.wefit.app.ui.components.StatusPill
-import com.wefit.app.ui.components.PillTone
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,11 +9,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.wefit.app.ui.components.PillTone
+import com.wefit.app.ui.components.StatusPill
+import com.wefit.app.ui.components.WeFitButton
+import com.wefit.app.ui.components.WeFitCard
+import com.wefit.app.ui.components.WeFitEmpty
+import com.wefit.app.ui.components.WeFitError
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssignmentProgressScreen(
     assignmentId: Int,
+    onViewCurve: (sessionId: Int) -> Unit = {},
     viewModel: AssignmentProgressViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -66,6 +67,7 @@ fun AssignmentProgressScreen(
                                     Text("Distance: ${"%.1f".format(session.distance)}m", style = MaterialTheme.typography.bodyMedium)
                                 }
                                 Text("Progress: ${session.progress_percentage.toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                                TextButton(onClick = { onViewCurve(session.id) }) { Text("View progress curve") }
                                 Spacer(Modifier.height(10.dp))
                                 if (session.status == "completed") {
                                     WeFitButton(

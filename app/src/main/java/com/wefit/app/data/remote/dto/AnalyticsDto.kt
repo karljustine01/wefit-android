@@ -19,3 +19,15 @@ data class TrendPointDto(
     val week: String,
     val count: Int
 )
+
+data class ExerciseStatDto(
+    val exercise: String,
+    val total_sessions: Int,
+    val completed_sessions: Int,
+    val avg_repetitions: Double?
+)
+
+data class GradeBucketDto(
+    val label: String,
+    val count: Int
+)

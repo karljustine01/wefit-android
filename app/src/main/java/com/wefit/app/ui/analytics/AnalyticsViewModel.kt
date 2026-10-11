@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wefit.app.data.local.TokenManager
+import com.wefit.app.data.remote.dto.ExerciseStatDto
+import com.wefit.app.data.remote.dto.GradeBucketDto
 import com.wefit.app.data.remote.dto.StudentAnalyticsDto
 import com.wefit.app.data.remote.dto.TeacherAnalyticsDto
 import com.wefit.app.data.remote.dto.TrendPointDto
@@ -19,6 +21,8 @@ data class AnalyticsUiState(
     val studentData: StudentAnalyticsDto? = null,
     val teacherData: TeacherAnalyticsDto? = null,
     val trend: List<TrendPointDto> = emptyList(),
+    val exerciseStats: List<ExerciseStatDto> = emptyList(),
+    val gradeBuckets: List<GradeBucketDto> = emptyList(),
     val role: String? = null,
     val error: String? = null
 )
@@ -39,32 +43,41 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _uiState.value = AnalyticsUiState(isLoading = true)
             val role = tokenManager.roleFlow.first()
+            val isStaff = role in listOf("TEACHER", "COACH", "ADMIN")
 
-            if (role in listOf("TEACHER", "COACH", "ADMIN")) {
-                val statsResult = repository.teacherAnalytics()
-                val trendResult = repository.teacherTrend()
-                statsResult.fold(
+            val trend = (if (isStaff) repository.teacherTrend() else repository.studentTrend()).getOrNull() ?: emptyList()
+            val stats = repository.exerciseBreakdown().getOrNull() ?: emptyList()
+            val buckets = repository.gradeDistribution().getOrNull() ?: emptyList()
+
+            if (isStaff) {
+                repository.teacherAnalytics().fold(
                     onSuccess = { data ->
                         _uiState.value = AnalyticsUiState(
                             teacherData = data,
-                            trend = trendResult.getOrNull() ?: emptyList(),
+                            trend = trend,
+                            exerciseStats = stats,
+                            gradeBuckets = buckets,
                             role = role
                         )
                     },
-                    onFailure = { e -> _uiState.value = AnalyticsUiState(error = e.message, role = role) }
+                    onFailure = { e ->
+                        _uiState.value = AnalyticsUiState(error = e.message, role = role)
+                    }
                 )
             } else {
-                val statsResult = repository.studentAnalytics()
-                val trendResult = repository.studentTrend()
-                statsResult.fold(
+                repository.studentAnalytics().fold(
                     onSuccess = { data ->
                         _uiState.value = AnalyticsUiState(
                             studentData = data,
-                            trend = trendResult.getOrNull() ?: emptyList(),
+                            trend = trend,
+                            exerciseStats = stats,
+                            gradeBuckets = buckets,
                             role = role
                         )
                     },
-                    onFailure = { e -> _uiState.value = AnalyticsUiState(error = e.message, role = role) }
+                    onFailure = { e ->
+                        _uiState.value = AnalyticsUiState(error = e.message, role = role)
+                    }
                 )
             }
         }

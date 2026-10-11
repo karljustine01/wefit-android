@@ -20,7 +20,7 @@ fun SectionDetailScreen(
     isOwner: Boolean,
     onCreateAssignment: (sectionId: Int) -> Unit,
     onAssignmentSelected: (assignmentId: Int) -> Unit,
-    onAssignmentSelectedForTracking: (assignmentId: Int, exerciseType: String, exerciseName: String) -> Unit,
+    onAssignmentSelectedForTracking: (assignmentId: Int, exerciseType: String, exerciseName: String, targetValue: Double?) -> Unit,
     onViewMembers: (sectionId: Int, isOwner: Boolean) -> Unit,
     viewModel: SectionDetailViewModel = viewModel()
 ) {
@@ -38,18 +38,14 @@ fun SectionDetailScreen(
                     onClick = { onCreateAssignment(sectionId) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Text("+")
-                }
+                ) { Text("+") }
             }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
                 state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                state.error != null -> {
-                    Text("Error: ${state.error}", modifier = Modifier.align(Alignment.Center))
-                }
+                state.error != null -> Text("Error: ${state.error}", modifier = Modifier.align(Alignment.Center))
                 state.section != null -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -62,9 +58,7 @@ fun SectionDetailScreen(
                                 Text("Join Code: ${state.section?.section_code}", style = MaterialTheme.typography.titleMedium)
                                 Text("Members: ${state.section?.members?.size ?: 0}")
                                 Spacer(Modifier.height(8.dp))
-                                TextButton(onClick = { onViewMembers(sectionId, isOwner) }) {
-                                    Text("View Members")
-                                }
+                                TextButton(onClick = { onViewMembers(sectionId, isOwner) }) { Text("View Members") }
                             }
                         }
                         item {
@@ -72,9 +66,7 @@ fun SectionDetailScreen(
                             Spacer(Modifier.height(4.dp))
                         }
                         if (state.assignments.isEmpty()) {
-                            item {
-                                Text("No assignments yet" + if (isOwner) " — tap + to create one" else "")
-                            }
+                            item { Text("No assignments yet" + if (isOwner) " — tap + to create one" else "") }
                         } else {
                             items(state.assignments) { assignment ->
                                 WeFitCard(
@@ -85,7 +77,9 @@ fun SectionDetailScreen(
                                         } else {
                                             val exercise = assignment.exercise
                                             if (exercise != null) {
-                                                onAssignmentSelectedForTracking(assignment.id, exercise.exercise_type, exercise.name)
+                                                onAssignmentSelectedForTracking(
+                                                    assignment.id, exercise.exercise_type, exercise.name, assignment.target_value
+                                                )
                                             }
                                         }
                                     }
@@ -93,6 +87,10 @@ fun SectionDetailScreen(
                                     Text(assignment.exercise?.name ?: "Unknown Exercise", style = MaterialTheme.typography.titleMedium)
                                     Spacer(Modifier.height(6.dp))
                                     StatusPill(assignment.status, tone = PillTone.Success)
+                                    assignment.target_value?.let {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text("Target: $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                     assignment.deadline?.let {
                                         Spacer(Modifier.height(4.dp))
                                         Text("Deadline: $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

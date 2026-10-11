@@ -16,6 +16,8 @@ import com.wefit.app.tracking.TrackingAvailability
 import com.wefit.app.tracking.TrackingData
 import com.wefit.app.tracking.TrackingStrategy
 import com.wefit.app.tracking.TrackingStrategyFactory
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +38,9 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     private var strategy: TrackingStrategy? = null
     private var sessionHandle: SessionHandle? = null
     private var preparedExerciseType: String? = null
+    private var targetValue: Double? = null
+    private var autoCompleteTriggered = false
+    private var progressJob: Job? = null
 
     private val _uiState = MutableStateFlow(TrackingUiState())
     val uiState: StateFlow<TrackingUiState> = _uiState.asStateFlow()
@@ -67,9 +72,12 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     private val _validationResults = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val validationResults: StateFlow<Map<String, Boolean>> = _validationResults.asStateFlow()
 
-    // GPS route points, for Running/Walking live map
     private val _routePoints = MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
     val routePoints: StateFlow<List<Pair<Double, Double>>> = _routePoints.asStateFlow()
+
+    fun setTarget(value: Double?) {
+        targetValue = value
+    }
 
     @androidx.annotation.OptIn(ExperimentalGetImage::class)
     fun prepare(exerciseType: String, lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
@@ -77,6 +85,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
             return
         }
         preparedExerciseType = exerciseType
+        autoCompleteTriggered = false
 
         val newStrategy = TrackingStrategyFactory.create(getApplication(), exerciseType, lifecycleOwner)
         strategy = newStrategy
@@ -102,6 +111,12 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
             newStrategy.data.collect { data ->
                 if (_uiState.value.phase == TrackingPhase.TRACKING) {
                     _uiState.value = _uiState.value.copy(data = data)
+                    if (!autoCompleteTriggered &&
+                        TrackingStrategyFactory.targetReached(preparedExerciseType ?: "", data, targetValue)
+                    ) {
+                        autoCompleteTriggered = true
+                        complete()
+                    }
                 }
             }
         }
@@ -178,10 +193,27 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
             if (s is PoseTrackingUi) {
                 s.beginCounting()
             } else if (s !is GpsTrackingStrategy) {
-                // GPS was already started in prepare(); avoid a second start() call.
                 s?.start()
             }
             _uiState.value = _uiState.value.copy(phase = TrackingPhase.TRACKING)
+            startProgressUploads()
+        }
+    }
+
+    private fun startProgressUploads() {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            while (true) {
+                delay(5000)
+                if (_uiState.value.phase == TrackingPhase.TRACKING) {
+                    val handle = sessionHandle ?: continue
+                    val d = _uiState.value.data
+                    val percent = targetValue?.let { t ->
+                        if (t > 0) (maxOf(d.repetitions.toDouble(), d.distanceMeters, d.durationSeconds.toDouble()) / t * 100).coerceIn(0.0, 100.0) else 0.0
+                    } ?: 0.0
+                    repository.uploadProgress(handle, d, percent)
+                }
+            }
         }
     }
 
@@ -196,6 +228,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun complete() {
+        progressJob?.cancel()
         viewModelScope.launch {
             val finalData = strategy?.stop() ?: _uiState.value.data
             sessionHandle?.let { handle ->
@@ -211,10 +244,25 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
         complete()
     }
 
+    fun submitManualFallback(assignmentId: Int, reps: Int?, distanceMeters: Double?, durationSeconds: Int?) {
+        viewModelScope.launch {
+            val handle = repository.startSession(assignmentId, "manual")
+            sessionHandle = handle
+            val data = TrackingData(
+                repetitions = reps ?: 0,
+                distanceMeters = distanceMeters ?: 0.0,
+                durationSeconds = durationSeconds ?: 0
+            )
+            repository.completeSession(handle, data)
+            _uiState.value = _uiState.value.copy(phase = TrackingPhase.COMPLETED, data = data)
+        }
+    }
+
     fun getPoseStrategy(): PoseTrackingUi? = strategy as? PoseTrackingUi
 
     override fun onCleared() {
         super.onCleared()
+        progressJob?.cancel()
         strategy?.stop()
         preparedExerciseType = null
     }

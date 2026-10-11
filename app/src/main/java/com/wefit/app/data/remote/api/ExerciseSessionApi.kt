@@ -3,6 +3,7 @@ package com.wefit.app.data.remote.api
 import com.wefit.app.data.remote.dto.ApiResponse
 import com.wefit.app.data.remote.dto.CompleteSessionRequest
 import com.wefit.app.data.remote.dto.ExerciseSessionDto
+import com.wefit.app.data.remote.dto.SessionDetailDto
 import com.wefit.app.data.remote.dto.StartSessionRequest
 import com.wefit.app.data.remote.dto.UpdateProgressRequest
 import retrofit2.http.Body
@@ -22,4 +23,7 @@ interface ExerciseSessionApi {
 
     @GET("exercise-sessions")
     suspend fun history(): ApiResponse<List<ExerciseSessionDto>>
+
+    @GET("exercise-sessions/{id}")
+    suspend fun getSession(@Path("id") id: Int): ApiResponse<SessionDetailDto>
 }

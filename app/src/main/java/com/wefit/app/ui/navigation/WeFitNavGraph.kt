@@ -1,25 +1,27 @@
 package com.wefit.app.ui.navigation
 
-import com.wefit.app.ui.admin.ActivityLogScreen
 import androidx.compose.foundation.layout.padding
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.wefit.app.ui.admin.ActivityLogScreen
+import com.wefit.app.ui.admin.AdminDashboardScreen
 import com.wefit.app.ui.admin.AdminUsersScreen
 import com.wefit.app.ui.analytics.AnalyticsScreen
 import com.wefit.app.ui.assignments.AssignmentProgressScreen
 import com.wefit.app.ui.assignments.AssignmentsScreen
 import com.wefit.app.ui.assignments.CreateAssignmentScreen
+import com.wefit.app.ui.assignments.SessionCurveScreen
 import com.wefit.app.ui.dashboard.DashboardScreen
 import com.wefit.app.ui.login.LoginScreen
 import com.wefit.app.ui.login.RegisterScreen
@@ -43,6 +45,7 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Analytics : Screen("analytics")
     object AdminUsers : Screen("admin_users")
+    object AdminDashboard : Screen("admin_dashboard")
     object Settings : Screen("settings")
     object ActivityLog : Screen("activity_log")
 
@@ -62,11 +65,16 @@ sealed class Screen(val route: String) {
         fun route(assignmentId: Int) = "assignment_progress/$assignmentId"
     }
 
-    object Tracking : Screen("tracking/{assignmentId}/{exerciseType}/{exerciseName}")
+    object SessionCurve : Screen("session_curve/{sessionId}") {
+        fun route(sessionId: Int) = "session_curve/$sessionId"
+    }
 
-    fun trackingRoute(assignmentId: Int, exerciseType: String, exerciseName: String): String {
-        val encodedName = URLEncoder.encode(exerciseName, "UTF-8")
-        return "tracking/$assignmentId/$exerciseType/$encodedName"
+    object Tracking : Screen("tracking/{assignmentId}/{exerciseType}/{exerciseName}?target={target}") {
+        fun route(assignmentId: Int, exerciseType: String, exerciseName: String, target: Double? = null): String {
+            val encodedName = URLEncoder.encode(exerciseName, "UTF-8")
+            val base = "tracking/$assignmentId/$exerciseType/$encodedName"
+            return if (target != null) "$base?target=$target" else base
+        }
     }
 }
 
@@ -128,6 +136,8 @@ fun WeFitNavGraph() {
                     onNavigateToCreateAssignment = { navController.navigate(Screen.CreateAssignment.route()) },
                     onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                     onNavigateToAdminUsers = { navController.navigate(Screen.AdminUsers.route) },
+                    onNavigateToAdminDashboard = { navController.navigate(Screen.AdminDashboard.route) },
+                    onNavigateToActivityLog = { navController.navigate(Screen.ActivityLog.route) },
                     onNavigateToAnalytics = { navController.navigate(Screen.Analytics.route) },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
                 )
@@ -156,8 +166,8 @@ fun WeFitNavGraph() {
                     isOwner = isOwner,
                     onCreateAssignment = { sId -> navController.navigate(Screen.CreateAssignment.route(sId)) },
                     onAssignmentSelected = { assignmentId -> navController.navigate(Screen.AssignmentProgress.route(assignmentId)) },
-                    onAssignmentSelectedForTracking = { assignmentId, exerciseType, exerciseName ->
-                        navController.navigate(Screen.Tracking.trackingRoute(assignmentId, exerciseType, exerciseName))
+                    onAssignmentSelectedForTracking = { assignmentId, exerciseType, exerciseName, target ->
+                        navController.navigate(Screen.Tracking.route(assignmentId, exerciseType, exerciseName, target))
                     },
                     onViewMembers = { sId, owner -> navController.navigate(Screen.SectionMembers.route(sId, owner)) }
                 )
@@ -175,8 +185,8 @@ fun WeFitNavGraph() {
             }
             composable(Screen.Assignments.route) {
                 AssignmentsScreen(
-                    onAssignmentSelected = { assignmentId, exerciseType, exerciseName ->
-                        navController.navigate(Screen.Tracking.trackingRoute(assignmentId, exerciseType, exerciseName))
+                    onAssignmentSelected = { assignmentId, exerciseType, exerciseName, target ->
+                        navController.navigate(Screen.Tracking.route(assignmentId, exerciseType, exerciseName, target))
                     }
                 )
             }
@@ -195,13 +205,25 @@ fun WeFitNavGraph() {
                 arguments = listOf(navArgument("assignmentId") { type = NavType.IntType })
             ) { backStackEntry ->
                 val assignmentId = backStackEntry.arguments?.getInt("assignmentId") ?: 0
-                AssignmentProgressScreen(assignmentId = assignmentId)
+                AssignmentProgressScreen(
+                    assignmentId = assignmentId,
+                    onViewCurve = { sid -> navController.navigate(Screen.SessionCurve.route(sid)) }
+                )
+            }
+            composable(
+                route = Screen.SessionCurve.route,
+                arguments = listOf(navArgument("sessionId") { type = NavType.IntType })
+            ) { entry ->
+                SessionCurveScreen(sessionId = entry.arguments?.getInt("sessionId") ?: 0)
             }
             composable(Screen.Notifications.route) {
                 NotificationsScreen()
             }
             composable(Screen.ActivityLog.route) {
                 ActivityLogScreen()
+            }
+            composable(Screen.AdminDashboard.route) {
+                AdminDashboardScreen()
             }
             composable(Screen.Profile.route) {
                 ProfileScreen()
@@ -220,18 +242,21 @@ fun WeFitNavGraph() {
                 arguments = listOf(
                     navArgument("assignmentId") { type = NavType.IntType },
                     navArgument("exerciseType") { type = NavType.StringType },
-                    navArgument("exerciseName") { type = NavType.StringType }
+                    navArgument("exerciseName") { type = NavType.StringType },
+                    navArgument("target") { type = NavType.StringType; nullable = true; defaultValue = null }
                 )
             ) { backStackEntry ->
                 val assignmentId = backStackEntry.arguments?.getInt("assignmentId") ?: 0
                 val exerciseType = backStackEntry.arguments?.getString("exerciseType") ?: "plank"
                 val encodedName = backStackEntry.arguments?.getString("exerciseName") ?: "Exercise"
                 val exerciseName = URLDecoder.decode(encodedName, "UTF-8")
+                val target = backStackEntry.arguments?.getString("target")?.toDoubleOrNull()
 
                 TrackingScreen(
                     assignmentId = assignmentId,
                     exerciseName = exerciseName,
                     exerciseType = exerciseType,
+                    targetValue = target,
                     onDone = { navController.popBackStack(Screen.Dashboard.route, inclusive = false) }
                 )
             }

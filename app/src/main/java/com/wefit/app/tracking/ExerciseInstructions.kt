@@ -45,20 +45,32 @@ object ExerciseInstructions {
             "GPS accuracy is reduced indoors or in dense urban areas.",
             "Allow a few seconds after starting for GPS to lock on."
         )
-        "curlup_modified", "lunges", "jumping_rope" -> listOf(
+        "curlup_modified", "lunges" -> listOf(
             "Hold the phone securely, or keep it in a pocket/armband — this exercise is tracked by motion sensors.",
             "Keep movements consistent for accurate counting."
         )
+        "jumping_rope" -> listOf(
+            "Keep the phone in a snug pocket or armband, not in your hand.",
+            "Each jump is counted as a motion peak; keep jumps consistent.",
+            "Counting is motion-based and cannot check your form."
+        )
         "plank" -> listOf(
-            "This exercise is timed only — press Start when you begin holding the position."
+            "Side view required — camera should see your whole body straight-on from the side.",
+            "Prop the phone 1.5–2 meters away, at floor level if possible.",
+            "Get into plank position before the timer will start counting.",
+            "The timer only advances while your body stays straight; it pauses automatically if your form breaks."
         )
         "stork_balance" -> listOf(
-            "Hold the phone securely (or in a pocket/armband) while balancing.",
-            "The timer and wobble count start when you begin the pose."
+            "Side or 3/4 view required — camera should see your whole body.",
+            "Prop the phone 1.5–2 meters away.",
+            "Stand on one leg, lifting the other foot off the ground.",
+            "The timer starts automatically once your lifted leg is detected, and pauses if you lower it or lose balance.",
+            "Hold as long as you can — the timer resumes instantly if you regain the pose."
         )
         "quadrant_agility" -> listOf(
-            "Keep the phone with you (pocket or armband) during the test.",
-            "This measures time and movement changes — not exact quadrant accuracy."
+            "Keep the phone in a snug pocket or armband.",
+            "The timer is the main result; direction changes are counted as extra data.",
+            "Quadrant order is not verified by the phone."
         )
         "sit_and_reach", "vertical_jump" -> listOf(
             "This result must be measured manually (e.g. with a ruler or marked wall) and entered after."

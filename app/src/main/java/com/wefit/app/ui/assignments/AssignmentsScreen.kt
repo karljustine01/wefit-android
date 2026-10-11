@@ -19,7 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssignmentsScreen(
-    onAssignmentSelected: (assignmentId: Int, exerciseType: String, exerciseName: String) -> Unit,
+    onAssignmentSelected: (assignmentId: Int, exerciseType: String, exerciseName: String, targetValue: Double?) -> Unit,
     viewModel: AssignmentsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -73,7 +73,7 @@ fun AssignmentsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     onClick = {
                                         if (exercise != null) {
-                                            onAssignmentSelected(assignment.id, exercise.exercise_type, exercise.name)
+                                            onAssignmentSelected(assignment.id, exercise.exercise_type, exercise.name, assignment.target_value)
                                         }
                                     }
                                 ) {
@@ -83,6 +83,10 @@ fun AssignmentsScreen(
                                         assignment.status,
                                         tone = if (assignment.status == "active") PillTone.Success else PillTone.Neutral
                                     )
+                                    assignment.target_value?.let {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text("Target: $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                     assignment.deadline?.let {
                                         Spacer(Modifier.height(4.dp))
                                         Text("Due: $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
