@@ -3,50 +3,22 @@ package com.wefit.app.tracking
 import android.content.Context
 
 /**
-- Full Sensor Feasibility Matrix
-
+ * Full Sensor Feasibility Matrix
  *
-- | Exercise                          | Strategy                              | Honest limitation |
-
-
-- |------------------------------------|-----------------------------------------|--------------------|
-
-
-- | walking                            | Step Counter + Timer                    | none — reliable |
-
-
-- | running, 50m_dash, mile_walk       | GPS + Timer                             | GPS accuracy varies indoors |
-
-
-- | pushup                             | PushUpTrackingStrategy (dedicated)      | requires clear side-view framing |
-
-
-- | squats, situps, pushup_modified    | RepStateMachineTrackingStrategy         | requires clear framing of relevant joints |
-
-
-- | lunges                             | RepStateMachineTrackingStrategy         | requires clear framing of lower body joints |
-
-
-- | jumping_jacks                      | PoseTrackingStrategy (generic)          | lighting/framing affects accuracy |
-
-
-- | plank                              | PoseHoldTrackingStrategy                | relies on stable pose estimation |
-
-
-- | stork_balance                      | PoseHoldTrackingStrategy                | relies on leg balance detection |
-
-
-- | curlup_modified, jumping_rope      | Accelerometer (peak detect)             | cannot verify form |
-
-
-- | quadrant_agility                   | Accelerometer + Timer                   | cannot verify movement pattern |
-
-
-- | sit_and_reach, vertical_jump       | Manual Entry                            | requires physical ruler/apparatus reading |
-
-
-- | project (Eating Healthy)           | No tracking — not physical               | by design, per spec |
-
+ * | Exercise                          | Strategy                              | Honest limitation |
+ * |-----------------------------------|---------------------------------------|-------------------|
+ * | walking                           | Step Counter + Timer                  | none — reliable |
+ * | running, 50m_dash, mile_walk      | GPS + Timer                           | GPS accuracy varies indoors |
+ * | pushup                            | PushUpTrackingStrategy (dedicated)    | requires clear side-view framing |
+ * | squats, situps, pushup_modified   | RepStateMachineTrackingStrategy       | requires clear framing of relevant joints |
+ * | lunges                            | RepStateMachineTrackingStrategy       | requires clear framing of lower body joints |
+ * | jumping_jacks                     | PoseTrackingStrategy (generic)        | lighting/framing affects accuracy |
+ * | plank                             | PoseHoldTrackingStrategy              | relies on stable pose estimation |
+ * | stork_balance                     | PoseHoldTrackingStrategy              | relies on leg balance detection |
+ * | curlup_modified, jumping_rope     | Accelerometer (peak detect)           | cannot verify form |
+ * | quadrant_agility                  | Accelerometer + Timer                 | cannot verify movement pattern |
+ * | sit_and_reach, vertical_jump      | Manual Entry                          | requires physical ruler/apparatus reading |
+ * | project (Eating Healthy)          | No tracking — not physical             | by design, per spec |
  */
 object TrackingStrategyFactory {
 
@@ -102,14 +74,27 @@ object TrackingStrategyFactory {
     fun hasStateMachineFeedback(exerciseType: String): Boolean =
         exerciseType in listOf("pushup", "squats", "situps", "pushup_modified", "lunges")
 
-    /** Which measurement a teacher's target applies to, per exercise. */
-    fun targetReached(exerciseType: String, d: TrackingData, target: Double?): Boolean = when (exerciseType) {
-        "50m_dash" -> d.distanceMeters >= 50.0            // fixed-distance test, no target needed
-        "mile_walk" -> d.distanceMeters >= 1609.34        // fixed-distance test, no target needed
-        "walking" -> target != null && d.steps >= target
-        "running" -> target != null && d.distanceMeters >= target
-        "plank", "stork_balance", "quadrant_agility" -> target != null && d.durationSeconds >= target
-        "sit_and_reach", "vertical_jump", "project" -> false
-        else -> target != null && d.repetitions >= target  // all rep-based exercises
+    /** Calculates progress percentage based on exercise-specific metrics. */
+    fun progressPercent(exerciseType: String, d: TrackingData, target: Double?): Double {
+        val goal = when (exerciseType) {
+            "50m_dash" -> 50.0
+            "mile_walk" -> 1609.34
+            else -> target ?: return 0.0
+        }
+        val current = when (exerciseType) {
+            "walking" -> d.steps.toDouble()
+            "running", "50m_dash", "mile_walk" -> d.distanceMeters
+            "plank", "stork_balance", "quadrant_agility" -> d.durationSeconds.toDouble()
+            else -> d.repetitions.toDouble()
+        }
+        return if (goal > 0) (current / goal * 100.0).coerceIn(0.0, 100.0) else 0.0
+    }
+
+    /** Determines if the target metric or fixed-distance requirement has been fulfilled. */
+    fun targetReached(exerciseType: String, d: TrackingData, target: Double?): Boolean {
+        if (exerciseType in listOf("sit_and_reach", "vertical_jump", "project")) return false
+        val fixed = exerciseType == "50m_dash" || exerciseType == "mile_walk"
+        if (!fixed && (target == null || target <= 0.0)) return false
+        return progressPercent(exerciseType, d, target) >= 100.0
     }
 }
