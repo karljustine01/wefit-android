@@ -21,7 +21,10 @@ data class CreateAssignmentUiState(
     val sections: List<SectionDto> = emptyList(),
     val error: String? = null,
     val success: Boolean = false,
-    val createdAssignmentId: Int? = null
+    val createdAssignmentId: Int? = null,
+    /** Exercise awaiting a "delete anyway?" confirmation because it is still assigned. */
+    val pendingForceDelete: ExerciseDto? = null,
+    val pendingForceDeleteMessage: String? = null
 )
 
 class CreateAssignmentViewModel(application: Application) : AndroidViewModel(application) {
@@ -98,6 +101,27 @@ class CreateAssignmentViewModel(application: Application) : AndroidViewModel(app
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             uploadDetails(id, instructions, mediaUri)
         }
+    }
+
+    /** Tries to delete; if the exercise is assigned the UI is asked to confirm first. */
+    fun deleteExercise(exercise: ExerciseDto, force: Boolean = false, onDeleted: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(error = null, pendingForceDelete = null, pendingForceDeleteMessage = null)
+            when (val result = exerciseRepo.deleteExercise(exercise.id, force)) {
+                is ExerciseRepository.DeleteResult.Deleted -> {
+                    _uiState.value = _uiState.value.copy(exercises = _uiState.value.exercises.filter { it.id != exercise.id })
+                    onDeleted()
+                }
+                is ExerciseRepository.DeleteResult.NeedsConfirmation ->
+                    _uiState.value = _uiState.value.copy(pendingForceDelete = exercise, pendingForceDeleteMessage = result.message)
+                is ExerciseRepository.DeleteResult.Failed ->
+                    _uiState.value = _uiState.value.copy(error = result.message)
+            }
+        }
+    }
+
+    fun dismissForceDelete() {
+        _uiState.value = _uiState.value.copy(pendingForceDelete = null, pendingForceDeleteMessage = null)
     }
 
     fun skipDetails() {

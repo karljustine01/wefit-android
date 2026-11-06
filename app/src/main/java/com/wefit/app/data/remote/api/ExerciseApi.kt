@@ -3,7 +3,9 @@ package com.wefit.app.data.remote.api
 import com.wefit.app.data.remote.dto.ApiResponse
 import com.wefit.app.data.remote.dto.CreateExerciseRequest
 import com.wefit.app.data.remote.dto.ExerciseDto
+import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -18,4 +20,10 @@ interface ExerciseApi {
 
     @GET("exercises/{id}")
     suspend fun get(@Path("id") id: Int): ApiResponse<ExerciseDto>
+
+    @DELETE("exercises/{id}")
+    suspend fun delete(
+        @Path("id") id: Int,
+        @Query("force") force: Int? = null
+    ): Response<ApiResponse<Any>>
 }

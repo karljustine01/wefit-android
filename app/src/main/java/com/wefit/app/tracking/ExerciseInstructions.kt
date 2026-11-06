@@ -45,7 +45,15 @@ object ExerciseInstructions {
             "GPS accuracy is reduced indoors or in dense urban areas.",
             "Allow a few seconds after starting for GPS to lock on."
         )
-        "curlup_modified", "lunges" -> listOf(
+        "lunges" -> listOf(
+            "Side view recommended — it shows your knee bend most clearly.",
+            "Prop the phone about 2 meters away at hip height, and keep it stable.",
+            "Make sure your hip, knee, and ankle are visible, and that your whole lower body stays in frame.",
+            "Start standing tall before you tap Start.",
+            "A rep counts when you lower until your knee bends to about 90–110°, then stand fully back up.",
+            "Keep a steady pace and a clear camera view — adjust your position if tracking looks unstable."
+        )
+        "curlup_modified" -> listOf(
             "Hold the phone securely, or keep it in a pocket/armband — this exercise is tracked by motion sensors.",
             "Keep movements consistent for accurate counting."
         )

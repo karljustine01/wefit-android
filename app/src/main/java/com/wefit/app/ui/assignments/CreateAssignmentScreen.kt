@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +48,8 @@ fun CreateAssignmentScreen(
     var selectedExerciseName by remember { mutableStateOf("") }
     var selectedExerciseType by remember { mutableStateOf("") }
     var exerciseExpanded by remember { mutableStateOf(false) }
+
+    var exerciseToDelete by remember { mutableStateOf<com.wefit.app.data.remote.dto.ExerciseDto?>(null) }
 
     var selectedSectionId by remember { mutableStateOf<Int?>(null) }
     var selectedSectionName by remember { mutableStateOf("") }
@@ -121,6 +124,18 @@ fun CreateAssignmentScreen(
                             state.exercises.forEach { exercise ->
                                 DropdownMenuItem(
                                     text = { Text(exercise.name) },
+                                    trailingIcon = {
+                                        IconButton(onClick = {
+                                            exerciseExpanded = false
+                                            exerciseToDelete = exercise
+                                        }) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete ${exercise.name}",
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    },
                                     onClick = {
                                         selectedExerciseId = exercise.id
                                         selectedExerciseName = exercise.name
@@ -324,5 +339,48 @@ fun CreateAssignmentScreen(
             },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }
         ) { DatePicker(state = datePickerState) }
+    }
+
+    // First confirmation: are you sure you want to delete this exercise?
+    exerciseToDelete?.let { exercise ->
+        AlertDialog(
+            onDismissRequest = { exerciseToDelete = null },
+            title = { Text("Delete exercise?") },
+            text = { Text("\"${exercise.name}\" will be removed from the exercise list.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    exerciseToDelete = null
+                    viewModel.deleteExercise(exercise) {
+                        if (selectedExerciseId == exercise.id) {
+                            selectedExerciseId = null
+                            selectedExerciseName = ""
+                            selectedExerciseType = ""
+                        }
+                    }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { exerciseToDelete = null }) { Text("Cancel") } }
+        )
+    }
+
+    // Second confirmation: the exercise is already assigned, so deleting removes those assignments + progress.
+    state.pendingForceDelete?.let { exercise ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissForceDelete() },
+            title = { Text("Exercise is already assigned") },
+            text = { Text(state.pendingForceDeleteMessage ?: "Deleting it will remove its assignments and student progress.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteExercise(exercise, force = true) {
+                        if (selectedExerciseId == exercise.id) {
+                            selectedExerciseId = null
+                            selectedExerciseName = ""
+                            selectedExerciseType = ""
+                        }
+                    }
+                }) { Text("Delete anyway", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { viewModel.dismissForceDelete() }) { Text("Cancel") } }
+        )
     }
 }

@@ -63,9 +63,13 @@ object PoseExerciseConfigs {
     )
     val JUMPING_JACK = PoseExerciseConfig(
         metricType = PoseMetricType.SPREAD,
-        upThreshold = 1.25,
-        downThreshold = 0.85,
+        // Metric is the AVERAGE of (wrist spread / shoulder width) and
+        // (ankle spread / hip width). Standing with arms down and feet together
+        // is ~1.0-1.3; arms overhead with feet apart is ~2.0-3.0.
+        upThreshold = 1.7,
+        downThreshold = 1.35,
         minLikelihood = 0.35f,
+        minRepIntervalMs = 350L,
         requiredConsecutiveFrames = 2
     )
 }
@@ -421,8 +425,10 @@ class PoseTrackingStrategy(
 
         if (contributors == 0) return null
 
-        // Normalize so the scale roughly matches the old two-pair sum (~0.9-1.3 range)
-        return ratio * (2.0 / contributors)
+        // Average of the available pairs. (Previously this returned the SUM, so the
+        // metric sat at ~2.0 even when standing and could never fall below
+        // downThreshold -> the DOWN phase never happened -> no rep was counted.)
+        return ratio / contributors
     }
 
     private fun calculateAngle(ax: Float, ay: Float, bx: Float, by: Float, cx: Float, cy: Float): Double {
