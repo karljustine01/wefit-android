@@ -34,7 +34,8 @@ fun SectionMembersScreen(
                 }
                 state.section != null -> {
                     val members = state.section?.members.orEmpty()
-                    if (members.isEmpty()) {
+                    val pending = if (isOwner) state.section?.pending_requests.orEmpty() else emptyList()
+                    if (members.isEmpty() && pending.isEmpty()) {
                         Text("No members yet", modifier = Modifier.align(Alignment.Center))
                     } else {
                         LazyColumn(
@@ -44,6 +45,24 @@ fun SectionMembersScreen(
                             item {
                                 Text("Section Code: ${state.section?.section_code}", style = MaterialTheme.typography.titleLarge)
                                 Spacer(Modifier.height(12.dp))
+                            }
+                            if (pending.isNotEmpty()) {
+                                item {
+                                    Text("Join requests (${pending.size})", style = MaterialTheme.typography.titleMedium)
+                                }
+                                items(pending) { req ->
+                                    Card(modifier = Modifier.fillMaxWidth()) {
+                                        Column(Modifier.padding(16.dp).fillMaxWidth()) {
+                                            Text(req.user?.name ?: "Unknown")
+                                            Text(req.user?.email ?: "", style = MaterialTheme.typography.labelLarge)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Button(onClick = { viewModel.approve(sectionId, req.id) }) { Text("Accept") }
+                                                OutlinedButton(onClick = { viewModel.deny(sectionId, req.id) }) { Text("Deny") }
+                                            }
+                                        }
+                                    }
+                                }
+                                item { Spacer(Modifier.height(8.dp)); Text("Members", style = MaterialTheme.typography.titleMedium) }
                             }
                             items(members) { member ->
                                 Card(modifier = Modifier.fillMaxWidth()) {

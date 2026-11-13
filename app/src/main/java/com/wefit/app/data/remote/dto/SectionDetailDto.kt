@@ -5,11 +5,14 @@ data class SectionDetailDto(
     val name: String? = null,
     val description: String? = null,
     val section_code: String? = null,
-    val members: List<SectionMemberDto>? = emptyList()
+    val members: List<SectionMemberDto>? = emptyList(),
+    // Only returned to the section owner
+    val pending_requests: List<SectionMemberDto>? = emptyList()
 )
 
 data class SectionMemberDto(
     val id: Int,
     val user_id: Int? = null,
+    val status: String? = null,
     val user: UserDto? = null
 )

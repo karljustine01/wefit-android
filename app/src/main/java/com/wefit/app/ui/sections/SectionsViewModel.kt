@@ -3,6 +3,7 @@ package com.wefit.app.ui.sections
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.wefit.app.data.remote.dto.JoinRequestDto
 import com.wefit.app.data.remote.dto.SectionDto
 import com.wefit.app.data.repository.SectionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
 data class SectionsUiState(
     val isLoading: Boolean = false,
     val sections: List<SectionDto> = emptyList(),
+    val myRequests: List<JoinRequestDto> = emptyList(),
     val error: String? = null,
     val actionMessage: String? = null
 )
@@ -32,9 +34,22 @@ class SectionsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.listSections().fold(
-                onSuccess = { sections -> _uiState.value = SectionsUiState(sections = sections) },
+                onSuccess = { sections ->
+                    // keep actionMessage so the "Request sent" message is not lost
+                    _uiState.value = _uiState.value.copy(isLoading = false, sections = sections)
+                    loadMyRequests()
+                },
                 onFailure = { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
             )
+        }
+    }
+
+    /** Students: pending / denied join requests. Teachers get an empty list from the server. */
+    private fun loadMyRequests() {
+        viewModelScope.launch {
+            repository.myRequests().onSuccess { list ->
+                _uiState.value = _uiState.value.copy(myRequests = list)
+            }
         }
     }
 
@@ -56,7 +71,7 @@ class SectionsViewModel(application: Application) : AndroidViewModel(application
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.joinSection(code).fold(
                 onSuccess = {
-                    _uiState.value = _uiState.value.copy(actionMessage = "Joined section")
+                    _uiState.value = _uiState.value.copy(actionMessage = "Request sent. Waiting for the teacher to approve.")
                     loadSections()
                 },
                 onFailure = { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }

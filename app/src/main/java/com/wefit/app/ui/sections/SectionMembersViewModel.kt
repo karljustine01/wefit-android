@@ -39,4 +39,18 @@ class SectionMembersViewModel(application: Application) : AndroidViewModel(appli
             load(sectionId)
         }
     }
+
+    fun approve(sectionId: Int, memberId: Int) {
+        viewModelScope.launch {
+            repository.approveRequest(sectionId, memberId)
+            load(sectionId)
+        }
+    }
+
+    fun deny(sectionId: Int, memberId: Int) {
+        viewModelScope.launch {
+            repository.denyRequest(sectionId, memberId)
+            load(sectionId)
+        }
+    }
 }

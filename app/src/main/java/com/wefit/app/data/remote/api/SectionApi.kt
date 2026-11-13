@@ -2,6 +2,7 @@ package com.wefit.app.data.remote.api
 
 import com.wefit.app.data.remote.dto.ApiResponse
 import com.wefit.app.data.remote.dto.CreateSectionRequest
+import com.wefit.app.data.remote.dto.JoinRequestDto
 import com.wefit.app.data.remote.dto.JoinSectionRequest
 import com.wefit.app.data.remote.dto.SectionDetailDto
 import com.wefit.app.data.remote.dto.SectionDto
@@ -29,4 +30,18 @@ interface SectionApi {
 
     @DELETE("sections/{sectionId}/members/{userId}")
     suspend fun removeMember(@Path("sectionId") sectionId: Int, @Path("userId") userId: Int): ApiResponse<Any>
+
+    // Student: my pending / denied requests
+    @GET("sections/requests/mine")
+    suspend fun myRequests(): ApiResponse<List<JoinRequestDto>>
+
+    // Teacher: pending requests across all my sections
+    @GET("sections/requests/pending")
+    suspend fun pendingRequests(): ApiResponse<List<JoinRequestDto>>
+
+    @POST("sections/{sectionId}/requests/{memberId}/approve")
+    suspend fun approveRequest(@Path("sectionId") sectionId: Int, @Path("memberId") memberId: Int): ApiResponse<Any>
+
+    @POST("sections/{sectionId}/requests/{memberId}/deny")
+    suspend fun denyRequest(@Path("sectionId") sectionId: Int, @Path("memberId") memberId: Int): ApiResponse<Any>
 }

@@ -38,7 +38,7 @@ fun SectionsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Text(if (canCreate) "+" else "Join")
+                Text(if (canCreate) "+" else "Request")
             }
         }
     ) { padding ->
@@ -55,7 +55,7 @@ fun SectionsScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                state.sections.isEmpty() && !state.isLoading -> {
+                state.sections.isEmpty() && state.myRequests.isEmpty() && !state.isLoading -> {
                     WeFitEmpty(
                         message = "No sections yet — pull down to refresh",
                         modifier = Modifier.fillMaxSize()
@@ -66,6 +66,25 @@ fun SectionsScreen(
                         modifier = Modifier.fillMaxSize().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        if (!canCreate && state.myRequests.isNotEmpty()) {
+                            item {
+                                Text("My join requests", style = MaterialTheme.typography.titleSmall)
+                            }
+                            items(state.myRequests) { req ->
+                                WeFitCard(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(req.section?.name ?: "Section", style = MaterialTheme.typography.titleMedium)
+                                        if (req.status == "DENIED") StatusPill("Denied", PillTone.Neutral)
+                                        else StatusPill("Pending approval", PillTone.Neutral)
+                                    }
+                                }
+                            }
+                            item { Spacer(Modifier.height(8.dp)) }
+                        }
                         items(state.sections) { section ->
                             WeFitCard(
                                 modifier = Modifier.fillMaxWidth(),
@@ -136,13 +155,13 @@ fun SectionsScreen(
 
         AlertDialog(
             onDismissRequest = { showJoinDialog = false },
-            title = { Text("Join Section") },
+            title = { Text("Request to Join Section") },
             text = {
                 Column {
                     OutlinedTextField(
                         value = code,
                         onValueChange = { code = it.trim().uppercase(); joinError = null },
-                        label = { Text("Section Code") }
+                        label = { Text("Section Code from your teacher") }
                     )
                     if (joinError != null) {
                         Spacer(Modifier.height(8.dp))
@@ -155,7 +174,7 @@ fun SectionsScreen(
                     viewModel.clearMessages()
                     isJoining = true
                     viewModel.joinSection(code.trim())
-                }) { Text("Join") }
+                }) { Text("Send Request") }
             },
             dismissButton = {
                 TextButton(onClick = { showJoinDialog = false }) { Text("Cancel") }
