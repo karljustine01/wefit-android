@@ -5,7 +5,8 @@ data class RegisterRequest(
     val email: String,
     val password: String,
     val password_confirmation: String,
-    val role: String
+    val role: String,
+    val school_id: String
 )
 
 data class LoginRequest(
@@ -34,7 +35,7 @@ data class ApiResponse<T>(
 )
 
 data class GoogleAuthRequest(val id_token: String)
-data class GoogleCompleteRequest(val id_token: String, val role: String)
+data class GoogleCompleteRequest(val id_token: String, val role: String, val school_id: String)
 
 data class GoogleAuthResult(
     val requires_role: Boolean,

@@ -67,11 +67,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun completeGoogleRole(role: String) {
+    fun completeGoogleRole(role: String, schoolId: String) {
         val idToken = _uiState.value.googlePendingIdToken ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            repository.completeGoogleRegistration(idToken, role).fold(
+            repository.completeGoogleRegistration(idToken, role, schoolId).fold(
                 onSuccess = { r -> _uiState.value = AuthUiState(loggedInRole = r) },
                 onFailure = { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
             )
@@ -82,10 +82,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = AuthUiState()
     }
 
-    fun register(name: String, email: String, password: String, confirmPassword: String, role: String) {
+    fun register(name: String, email: String, password: String, confirmPassword: String, role: String, schoolId: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
-            val result = repository.register(name, email, password, confirmPassword, role)
+            val result = repository.register(name, email, password, confirmPassword, role, schoolId)
             result.fold(
                 onSuccess = { r -> _uiState.value = AuthUiState(loggedInRole = r) },
                 onFailure = { e -> _uiState.value = AuthUiState(error = e.message) }

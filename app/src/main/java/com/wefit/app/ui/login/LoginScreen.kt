@@ -111,6 +111,7 @@ fun LoginScreen(
 
     if (state.googleNeedsRole) {
         var selectedRole by remember { mutableStateOf("STUDENT") }
+        var schoolId by remember { mutableStateOf("") }
         val roles = listOf("STUDENT", "VARSITY", "TEACHER", "COACH")
         var expanded by remember { mutableStateOf(false) }
 
@@ -135,10 +136,25 @@ fun LoginScreen(
                             }
                         }
                     }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = schoolId,
+                        onValueChange = { schoolId = it },
+                        label = { Text(schoolIdLabel(selectedRole)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (state.error != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(state.error ?: "", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.completeGoogleRole(selectedRole) }) { Text("Create Account") }
+                TextButton(
+                    onClick = { viewModel.completeGoogleRole(selectedRole, schoolId.trim()) },
+                    enabled = schoolId.isNotBlank() && !state.isLoading
+                ) { Text("Create Account") }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelGoogleRoleSelection() }) { Text("Cancel") }

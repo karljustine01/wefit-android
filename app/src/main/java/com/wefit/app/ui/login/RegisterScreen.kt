@@ -20,6 +20,7 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("STUDENT") }
+    var schoolId by remember { mutableStateOf("") }
     val roles = listOf("STUDENT", "VARSITY", "TEACHER", "COACH")
     var expanded by remember { mutableStateOf(false) }
 
@@ -61,6 +62,16 @@ fun RegisterScreen(
             }
         }
 
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = schoolId,
+            onValueChange = { schoolId = it },
+            label = { Text(schoolIdLabel(role)) },
+            supportingText = { Text("Must match the school's official list for this role.") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Spacer(Modifier.height(24.dp))
 
         if (state.error != null) {
@@ -69,8 +80,8 @@ fun RegisterScreen(
         }
 
         Button(
-            onClick = { viewModel.register(name.trim(), email.trim(), password, confirmPassword, role) },
-            enabled = !state.isLoading,
+            onClick = { viewModel.register(name.trim(), email.trim(), password, confirmPassword, role, schoolId.trim()) },
+            enabled = !state.isLoading && schoolId.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
             if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp)) else Text("Register")
@@ -81,4 +92,12 @@ fun RegisterScreen(
             Text("Already have an account? Login")
         }
     }
+}
+
+fun schoolIdLabel(role: String): String = when (role) {
+    "STUDENT" -> "Student Number"
+    "VARSITY" -> "Varsity / Student Number"
+    "TEACHER" -> "Teacher / Employee ID"
+    "COACH" -> "Coach / Employee ID"
+    else -> "School ID"
 }
