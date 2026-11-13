@@ -83,6 +83,10 @@ fun AssignmentsScreen(
                                         assignment.status,
                                         tone = if (assignment.status == "active") PillTone.Success else PillTone.Neutral
                                     )
+                                    if (assignment.is_adjusted == true) {
+                                        Spacer(Modifier.height(4.dp))
+                                        StatusPill("Adjusted for you", tone = PillTone.Neutral)
+                                    }
                                     assignment.target_value?.let {
                                         Spacer(Modifier.height(4.dp))
                                         Text("Target: $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

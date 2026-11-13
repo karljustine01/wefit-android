@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wefit.app.data.remote.dto.ExerciseDto
 import com.wefit.app.data.remote.dto.SectionDto
+import com.wefit.app.data.remote.dto.SectionMemberDto
+import com.wefit.app.data.remote.dto.StudentOverrideDto
 import com.wefit.app.data.repository.AssignmentDetailsRepository
 import com.wefit.app.data.repository.AssignmentRepository
 import com.wefit.app.data.repository.ExerciseRepository
@@ -19,6 +21,9 @@ data class CreateAssignmentUiState(
     val isLoading: Boolean = false,
     val exercises: List<ExerciseDto> = emptyList(),
     val sections: List<SectionDto> = emptyList(),
+    /** Students of the currently selected section, used for per-student adjustments. */
+    val members: List<SectionMemberDto> = emptyList(),
+    val membersLoading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false,
     val createdAssignmentId: Int? = null,
@@ -56,17 +61,31 @@ class CreateAssignmentViewModel(application: Application) : AndroidViewModel(app
         if (_uiState.value.sections.any { it.id == sectionId }) _preselectedSectionId.value = sectionId
     }
 
+    /** Loads the students of a section so the teacher can exclude / adjust individual students. */
+    fun loadMembers(sectionId: Int?) {
+        if (sectionId == null) {
+            _uiState.value = _uiState.value.copy(members = emptyList(), membersLoading = false)
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(members = emptyList(), membersLoading = true)
+            val members = sectionRepo.getSectionDetail(sectionId).getOrNull()?.members.orEmpty()
+            _uiState.value = _uiState.value.copy(members = members, membersLoading = false)
+        }
+    }
+
     fun createAssignment(
         exerciseId: Int,
         sectionId: Int?,
         targetValue: Double?,
         deadline: String?,
         instructions: String?,
-        mediaUri: Uri?
+        mediaUri: Uri?,
+        overrides: List<StudentOverrideDto> = emptyList()
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            assignmentRepo.createAssignment(exerciseId, sectionId, null, targetValue, deadline).fold(
+            assignmentRepo.createAssignment(exerciseId, sectionId, null, targetValue, deadline, overrides).fold(
                 onSuccess = { created ->
                     val hasDetails = !instructions.isNullOrBlank() || mediaUri != null
                     if (!hasDetails) {

@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.wefit.app.data.remote.dto.StudentOverrideDto
 import com.wefit.app.tracking.ExerciseUnits
 import com.wefit.app.ui.components.WeFitButton
 import com.wefit.app.ui.components.WeFitCard
@@ -67,6 +68,9 @@ fun CreateAssignmentScreen(
     var mediaIsVideo by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
 
+    // Per-student accommodations (userId -> adjustment) for special-needs students
+    val overrides = remember { mutableStateMapOf<Int, StudentOverrideDto>() }
+
     val unit = if (selectedExerciseType.isBlank()) null else ExerciseUnits.targetUnit(selectedExerciseType)
     val isFixedDistance = selectedExerciseType == "50m_dash" || selectedExerciseType == "mile_walk"
 
@@ -84,6 +88,20 @@ fun CreateAssignmentScreen(
             hasTarget = false
             targetValue = ""
         }
+    }
+
+    // New section => different students, so start with no adjustments and load the roster
+    LaunchedEffect(selectedSectionId) {
+        overrides.clear()
+        viewModel.loadMembers(selectedSectionId)
+    }
+
+    // A custom target is measured in the class exercise's unit, and a substitute can't be the class exercise itself
+    LaunchedEffect(selectedExerciseId, selectedExerciseType) {
+        overrides.filterValues {
+            (!it.excluded && it.alternate_exercise_id == null && it.target_value != null) ||
+                    it.alternate_exercise_id == selectedExerciseId
+        }.keys.toList().forEach { overrides.remove(it) }
     }
 
     LaunchedEffect(state.sections, preselectedSectionId) {
@@ -225,6 +243,25 @@ fun CreateAssignmentScreen(
                     }
                 }
 
+                if (selectedSectionId != null) {
+                    Spacer(Modifier.height(16.dp))
+                    StudentAccommodationsCard(
+                        members = state.members,
+                        loading = state.membersLoading,
+                        exercises = state.exercises,
+                        mainExerciseId = selectedExerciseId,
+                        mainExerciseType = selectedExerciseType,
+                        overrides = overrides,
+                        onSet = { userId, override ->
+                            if (override == null) {
+                                overrides.remove(userId)
+                            } else {
+                                overrides[userId] = override
+                            }
+                        }
+                    )
+                }
+
                 Spacer(Modifier.height(16.dp))
 
                 WeFitCard(modifier = Modifier.fillMaxWidth()) {
@@ -311,7 +348,8 @@ fun CreateAssignmentScreen(
                                             targetValue = parsedTarget,
                                             deadline = if (hasDeadline) deadline else null,
                                             instructions = instructions.trim().ifBlank { null },
-                                            mediaUri = mediaUri
+                                            mediaUri = mediaUri,
+                                            overrides = if (selectedSectionId != null) overrides.values.toList() else emptyList()
                                         )
                                     }
                                 }
