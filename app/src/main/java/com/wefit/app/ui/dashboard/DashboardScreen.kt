@@ -29,6 +29,7 @@ fun DashboardScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToAdminUsers: () -> Unit = {},
     onNavigateToAdminDashboard: () -> Unit = {},
+    onNavigateToAdminRoster: () -> Unit = {},
     onNavigateToActivityLog: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel(),
@@ -139,6 +140,20 @@ fun DashboardScreen(
                         Icon(Icons.Default.ManageAccounts, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(12.dp))
                         Text("Manage Users", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                WeFitCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onNavigateToAdminRoster
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.HowToReg, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("School Roster", style = MaterialTheme.typography.titleMedium)
+                            Text("Add people or import a CSV so they can register", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
                 Spacer(Modifier.height(12.dp))

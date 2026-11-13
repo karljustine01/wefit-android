@@ -16,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wefit.app.ui.admin.ActivityLogScreen
 import com.wefit.app.ui.admin.AdminDashboardScreen
+import com.wefit.app.ui.admin.AdminRosterScreen
 import com.wefit.app.ui.admin.AdminUsersScreen
 import com.wefit.app.ui.analytics.AnalyticsScreen
 import com.wefit.app.ui.assignments.AssignmentProgressScreen
@@ -46,6 +47,7 @@ sealed class Screen(val route: String) {
     object Analytics : Screen("analytics")
     object AdminUsers : Screen("admin_users")
     object AdminDashboard : Screen("admin_dashboard")
+    object AdminRoster : Screen("admin_roster")
     object Settings : Screen("settings")
     object ActivityLog : Screen("activity_log")
 
@@ -137,6 +139,7 @@ fun WeFitNavGraph() {
                     onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                     onNavigateToAdminUsers = { navController.navigate(Screen.AdminUsers.route) },
                     onNavigateToAdminDashboard = { navController.navigate(Screen.AdminDashboard.route) },
+                    onNavigateToAdminRoster = { navController.navigate(Screen.AdminRoster.route) },
                     onNavigateToActivityLog = { navController.navigate(Screen.ActivityLog.route) },
                     onNavigateToAnalytics = { navController.navigate(Screen.Analytics.route) },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
@@ -236,6 +239,9 @@ fun WeFitNavGraph() {
             }
             composable(Screen.AdminUsers.route) {
                 AdminUsersScreen()
+            }
+            composable(Screen.AdminRoster.route) {
+                AdminRosterScreen()
             }
             composable(
                 route = Screen.Tracking.route,
