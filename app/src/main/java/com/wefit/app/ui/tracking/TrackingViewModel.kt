@@ -11,6 +11,8 @@ import com.wefit.app.data.repository.TrackingRepository
 import com.wefit.app.tracking.GpsTrackingStrategy
 import com.wefit.app.tracking.ManualEntryStrategy
 import com.wefit.app.tracking.PosePoint
+import com.wefit.app.tracking.SessionVideoRecorder
+import com.wefit.app.workers.VideoUploadWorker
 import com.wefit.app.tracking.PoseTrackingUi
 import com.wefit.app.tracking.PushUpTrackingStrategy
 import com.wefit.app.tracking.RepStateMachineTrackingStrategy
@@ -31,7 +33,9 @@ data class TrackingUiState(
     val phase: TrackingPhase = TrackingPhase.IDLE,
     val data: TrackingData = TrackingData(),
     val availability: TrackingAvailability? = null,
-    val error: String? = null
+    val error: String? = null,
+    val isRecording: Boolean = false,
+    val videoQueued: Boolean = false
 )
 
 class TrackingViewModel(application: Application) : AndroidViewModel(application) {
@@ -159,6 +163,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     @androidx.annotation.OptIn(ExperimentalGetImage::class)
     fun forceReprepare(exerciseType: String, lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
         progressJob?.cancel()
+        SessionVideoRecorder.discard()
         preparedExerciseType = null
         strategy?.stop()
         strategy = null
@@ -171,7 +176,9 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
             sessionHandle = repository.startSession(assignmentId, trackingMethod)
             val s = strategy
             if (s is PoseTrackingUi) s.beginCounting() else s?.start()
-            _uiState.value = _uiState.value.copy(phase = TrackingPhase.TRACKING)
+            val recording = TrackingStrategyFactory.isPoseBased(exerciseType) &&
+                    SessionVideoRecorder.start(getApplication())
+            _uiState.value = _uiState.value.copy(phase = TrackingPhase.TRACKING, isRecording = recording)
             startProgressUploads()
         }
     }
@@ -204,9 +211,24 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     fun complete() {
         progressJob?.cancel()
         viewModelScope.launch {
+            val video = SessionVideoRecorder.stopAndAwait()      // must happen before the camera is unbound
+            val videoSeconds = SessionVideoRecorder.lastDurationSeconds
             val finalData = strategy?.stop() ?: _uiState.value.data
-            sessionHandle?.let { repository.completeSession(it, finalData) }
-            _uiState.value = _uiState.value.copy(phase = TrackingPhase.COMPLETED, data = finalData)
+            val handle = sessionHandle
+            handle?.let { repository.completeSession(it, finalData) }
+
+            // Queue the (already compressed) clip for upload. Needs a server-side session id.
+            var queued = false
+            val serverId = handle?.serverId
+            if (video != null && serverId != null) {
+                VideoUploadWorker.enqueue(getApplication(), serverId, video, videoSeconds)
+                queued = true
+            } else {
+                video?.delete()
+            }
+            _uiState.value = _uiState.value.copy(
+                phase = TrackingPhase.COMPLETED, data = finalData, isRecording = false, videoQueued = queued
+            )
         }
     }
 
@@ -235,6 +257,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         super.onCleared()
         progressJob?.cancel()
+        SessionVideoRecorder.discard()
         strategy?.stop()
         preparedExerciseType = null
     }

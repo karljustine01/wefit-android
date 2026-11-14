@@ -119,7 +119,7 @@ class PoseHoldTrackingStrategy(
                 pendingPreview = preview
                 val selector = if (config.useFrontCamera) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
                 provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                com.wefit.app.tracking.SessionVideoRecorder.bind(provider, lifecycleOwner, selector, preview, analysis)
                 previewView?.let { preview.setSurfaceProvider(it.surfaceProvider) }
             } catch (e: Exception) {
                 android.util.Log.e("WeFitHold", "Camera bind failed", e)

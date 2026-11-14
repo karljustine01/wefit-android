@@ -179,6 +179,12 @@ fun TrackingScreen(
                         } else {
                             Text("⚠️ Adjust your position so your whole body is visible", color = MaterialTheme.colorScheme.error)
                         }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "🎥 Your exercise will be recorded (video only, no sound) and sent to your teacher to verify it's really you.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = { viewModel.start(assignmentId, exerciseType) }) { Text("Start Exercise") }
                     } else {
@@ -193,6 +199,10 @@ fun TrackingScreen(
                 TrackingPhase.TRACKING, TrackingPhase.PAUSED -> {
                     if (!isPoseExercise && !isGpsExercise) {
                         Text("${state.data.durationSeconds}s", style = MaterialTheme.typography.headlineSmall)
+                    }
+                    if (isPoseExercise && state.isRecording) {
+                        Text("● REC — recording for your teacher", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(6.dp))
                     }
                     if (isPoseExercise) {
                         PoseCameraBox(viewModel, skeletonPoints, currentAngle, repState, state.data.durationSeconds, showCamera)
@@ -258,6 +268,9 @@ fun TrackingScreen(
 
                 TrackingPhase.COMPLETED -> {
                     Text("✅ Session Complete!", style = MaterialTheme.typography.titleLarge)
+                    if (state.videoQueued) {
+                        Text("🎥 Video is being sent to your teacher…", style = MaterialTheme.typography.bodyMedium)
+                    }
                     Text("Duration: ${state.data.durationSeconds}s")
                     if (state.data.steps > 0) Text("Steps: ${state.data.steps}")
                     if (state.data.repetitions > 0) Text("Reps: ${state.data.repetitions}")

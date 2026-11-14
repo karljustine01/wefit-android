@@ -25,6 +25,7 @@ fun AssignmentProgressScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var gradingUserId by remember { mutableStateOf<Int?>(null) }
+    var watching by remember { mutableStateOf<Pair<Int, String>?>(null) } // sessionId to student name
 
     LaunchedEffect(assignmentId) {
         viewModel.load(assignmentId)
@@ -68,6 +69,14 @@ fun AssignmentProgressScreen(
                                 }
                                 Text("Progress: ${session.progress_percentage.toInt()}%", style = MaterialTheme.typography.bodyMedium)
                                 TextButton(onClick = { onViewCurve(session.id) }) { Text("View progress curve") }
+                                if (session.has_video) {
+                                    OutlinedButton(
+                                        onClick = { watching = session.id to (session.user?.name ?: "Student") },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) { Text("🎥 Watch verification video") }
+                                } else if (session.status == "completed") {
+                                    Text("No video submitted", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 Spacer(Modifier.height(10.dp))
                                 if (session.status == "completed") {
                                     WeFitButton(
@@ -88,6 +97,10 @@ fun AssignmentProgressScreen(
                 }
             }
         }
+    }
+
+    watching?.let { (sid, name) ->
+        VideoReviewDialog(sessionId = sid, studentName = name, onDismiss = { watching = null })
     }
 
     val targetUserId = gradingUserId

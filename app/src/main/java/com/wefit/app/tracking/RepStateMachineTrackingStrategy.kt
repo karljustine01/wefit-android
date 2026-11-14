@@ -220,7 +220,7 @@ class RepStateMachineTrackingStrategy(
                 val selector = if (config.useFrontCamera) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
 
                 provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                com.wefit.app.tracking.SessionVideoRecorder.bind(provider, lifecycleOwner, selector, preview, analysis)
 
                 previewView?.let { preview.setSurfaceProvider(it.surfaceProvider) }
                 android.util.Log.d("WeFitRep", "Camera bound OK")

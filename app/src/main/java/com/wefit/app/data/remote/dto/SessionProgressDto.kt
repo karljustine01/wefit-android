@@ -7,5 +7,6 @@ data class SessionProgressDto(
     val repetitions: Int?,
     val distance: Double?,
     val progress_percentage: Double,
-    val user: UserDto?
+    val user: UserDto?,
+    val has_video: Boolean = false
 )

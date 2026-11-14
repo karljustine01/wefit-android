@@ -98,6 +98,7 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
+    implementation("androidx.camera:camera-video:1.3.4")
 
 // ML Kit Pose Detection (on-device, real model — not fabricated)
     implementation("com.google.mlkit:pose-detection-accurate:18.0.0-beta5")

@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     private var retrofit: Retrofit? = null
+    private var mediaRetrofit: Retrofit? = null
 
     fun getInstance(context: Context): Retrofit {
         if (retrofit == null) {
@@ -34,5 +35,29 @@ object RetrofitClient {
                 .build()
         }
         return retrofit!!
+    }
+
+    /**
+     * Separate client for video upload/download. The normal client logs request/response
+     * BODIES, which would try to buffer and print a multi-MB binary video (OOM + log spam),
+     * so this one has no body logging and longer timeouts for slow mobile networks.
+     */
+    fun getMediaInstance(context: Context): Retrofit {
+        if (mediaRetrofit == null) {
+            val tokenManager = TokenManager(context.applicationContext)
+            val client = OkHttpClient.Builder()
+                .addInterceptor(AuthInterceptor(tokenManager))
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(180, TimeUnit.SECONDS)
+                .readTimeout(180, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build()
+            mediaRetrofit = Retrofit.Builder()
+                .baseUrl(ApiConfig.BASE_URL)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+        }
+        return mediaRetrofit!!
     }
 }
