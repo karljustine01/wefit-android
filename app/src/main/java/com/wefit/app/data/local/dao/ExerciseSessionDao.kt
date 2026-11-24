@@ -22,6 +22,10 @@ interface ExerciseSessionDao {
     @Query("SELECT * FROM exercise_sessions WHERE syncStatus = 'pending'")
     suspend fun getPendingSync(): List<ExerciseSessionEntity>
 
+    /** Data recycling: synced / cancelled rows are already safe on the server, so old ones can go. */
+    @Query("DELETE FROM exercise_sessions WHERE (syncStatus = 'synced' OR status = 'cancelled') AND startedAt < :cutoff")
+    suspend fun deleteOlderThan(cutoff: Long): Int
+
     @Query("SELECT * FROM exercise_sessions ORDER BY startedAt DESC")
     fun getAll(): Flow<List<ExerciseSessionEntity>>
 }

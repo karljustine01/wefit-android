@@ -159,7 +159,7 @@ fun AdminRosterScreen(viewModel: AdminRosterViewModel = viewModel()) {
             text = {
                 Text(
                     buildString {
-                        append("${member.name} (${member.school_id}) will no longer be able to register as ${member.role.lowercase()}.")
+                        append("${member.name} (${member.school_id}) will no longer be able to register as ${member.role.lowercase()}. You can restore the entry from the Recycle Bin.")
                         if (member.isRegistered) append("\n\nThey already have an account. It will not be deleted.")
                     }
                 )

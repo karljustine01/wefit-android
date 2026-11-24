@@ -21,6 +21,8 @@ class SessionSyncWorker(context: Context, params: WorkerParameters) : CoroutineW
         val api = RetrofitClient.getInstance(applicationContext).create(ExerciseSessionApi::class.java)
         val dao = db.exerciseSessionDao()
 
+        com.wefit.app.data.local.LocalRecycler.run(applicationContext)
+
         val pending = dao.getPendingSync()
         if (pending.isEmpty()) return Result.success()
 

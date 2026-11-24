@@ -31,6 +31,8 @@ fun DashboardScreen(
     onNavigateToAdminDashboard: () -> Unit = {},
     onNavigateToAdminRoster: () -> Unit = {},
     onNavigateToActivityLog: () -> Unit = {},
+    onNavigateToRecycleBin: () -> Unit = {},
+    onNavigateToSchoolYear: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
@@ -126,6 +128,20 @@ fun DashboardScreen(
                         }
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                WeFitCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onNavigateToRecycleBin
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Restore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Recycle Bin", style = MaterialTheme.typography.titleMedium)
+                            Text("Restore deleted sections, exercises and assignments", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
             }
 
             if (role == "ADMIN") {
@@ -153,6 +169,20 @@ fun DashboardScreen(
                         Column {
                             Text("School Roster", style = MaterialTheme.typography.titleMedium)
                             Text("Add people or import a CSV so they can register", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                WeFitCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onNavigateToSchoolYear
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("School Year", style = MaterialTheme.typography.titleMedium)
+                            Text("Start a new year, import the PE roster, close finished accounts", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
